@@ -2,6 +2,18 @@ import sys
 import math
 import random
 
+def replacement_policy(subst, start_index, end_index, cache_order, access_order, cache_tag, tag):
+    cache_index = 0
+    if subst == "R":
+        cache_index = random.randint(start_index, end_index - 1) # Escolha aleatória do bloco a ser substituído
+    
+    elif subst == "L":
+        # Encontra o conjunto menos recentemente usando (LRU)
+        cache_index = start_index + cache_order[start_index:end_index].index(min(cache_order[start_index:end_index]))
+        cache_order[cache_index] = access_order # Atualiza a ordem de acesso do conjunto
+    
+    cache_tag[cache_index] = tag
+
 def main():
     if len(sys.argv) != 7:
         print("Número de argumentos incorreto. Utilize:")
@@ -24,8 +36,9 @@ def main():
     miss_conflict = 0
 
     # Inicialização das estruturas de cache
-    cache_val = [0] * (nsets * assoc)
+    cache_val  = [0] * (nsets * assoc)
     cache_tag = [-1] * (nsets * assoc)
+    cache_order = [0] * (nsets * assoc)
 
     # Cálculo do número de bits para offset, índice e tag
     n_bits_offset = int(math.log2(bsize))
@@ -65,10 +78,13 @@ def main():
             else:  
                 start_index = index * assoc
                 end_index = start_index + assoc
+                access_order = number_access
+
                 for i in range(start_index, end_index):
                     if cache_val[i] == 1 and cache_tag[i] == tag:
                         hit += 1
                         found = True
+                        cache_order[i] = access_order           # Atualiza a ordem de acesso do conjunto
                         break
 
                 if not found:
@@ -79,18 +95,15 @@ def main():
                             if cache_val[i] == 0:
                                 cache_val[i] = 1
                                 cache_tag[i] = tag
+                                cache_order[i] = access_order           # Atualiza a ordem de acesso do conjunto
                                 break
                     elif 0 in cache_val:
                         miss_conflict += 1
-                        # Escolha aleatória do bloco a ser substituído
-                        cache_index = random.randint(start_index, end_index - 1)
-                        cache_tag[cache_index] = tag
+                        replacement_policy(subst, start_index, end_index, cache_order, access_order, cache_tag, tag)
                         
                     else: 
-                        miss_capacity += 1
-                        # Escolha aleatória do bloco a ser substituído
-                        cache_index = random.randint(start_index, end_index - 1)
-                        cache_tag[cache_index] = tag
+                        miss_capacity += 1            
+                        replacement_policy(subst, start_index, end_index, cache_order, access_order, cache_tag, tag)
 
 
     hit_rate = round(hit / number_access, 4)
@@ -115,3 +128,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
