@@ -3,7 +3,7 @@ import math
 import random
 
 
-def replacement_policy(subst, start_index, end_index, cache_order, access_order, cache_tag, tag):
+def replacement_policy(subst, start_index, end_index, cache_order, access_order, cache_tag, tag, ):
     
     cache_index = 0
     if subst == "R":
@@ -11,6 +11,18 @@ def replacement_policy(subst, start_index, end_index, cache_order, access_order,
     elif subst == "L":
         cache_index = start_index + cache_order[start_index:end_index].index(min(cache_order[start_index:end_index]))
         cache_order[cache_index] = access_order  # Atualiza a ordem de acesso do conjunto
+    elif subst == "F": 
+        oldest_index = start_index
+        oldest_access_order = cache_order[start_index]
+        for i in range(start_index + 1, end_index):
+            if cache_order[i] < oldest_access_order:
+                oldest_index = i
+                oldest_access_order = cache_order[i]
+        cache_index = oldest_index
+        cache_order[cache_index] = access_order
+    else: 
+        print("Política de substituição inválida!")
+    
     cache_tag[cache_index] = tag
     return cache_order, cache_tag
 
@@ -125,6 +137,7 @@ def main():
             if assoc == 1:
                 cache_val, cache_tag, hit, miss, miss_compulsory = direct_mapping(index, cache_val, cache_tag, tag,
                                                                                    hit, miss, miss_compulsory)
+            
             # Mapeamento associativo
             else:
                 start_index = index * assoc
