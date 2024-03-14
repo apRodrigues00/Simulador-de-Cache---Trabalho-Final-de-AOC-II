@@ -19,7 +19,7 @@ def replacement_policy(subst, start_index, end_index, cache_order, access_order,
                 oldest_index = i
                 oldest_access_order = cache_order[i]
         cache_index = oldest_index
-        cache_order[cache_index] = access_order
+        cache_order[cache_index] = access_order 
     else: 
         print("Política de substituição inválida!")
     
@@ -48,17 +48,32 @@ def print_cache_data(hit, number_access, miss, miss_compulsory, miss_capacity, m
         print("Flag de saída inválida!")
 
 
-def direct_mapping(cache_index, cache_val, cache_tag, tag, hit, miss, miss_compulsory):
+def direct_mapping(cache_index, cache_val, cache_tag, tag, hit, miss, miss_compulsory, found, subst, cache_order, access_order, miss_conflict, nsets, miss_capacity):
 
     if cache_val[cache_index] == 1 and cache_tag[cache_index] == tag:
         hit += 1
-    else:
+        found = True
+        cache_order[cache_index] = access_order
+
+    if not found:
         miss += 1
         if cache_val[cache_index] == 0:
             miss_compulsory += 1
             cache_val[cache_index] = 1
             cache_tag[cache_index] = tag
-    return cache_val, cache_tag, hit, miss, miss_compulsory
+            cache_order[cache_index] = access_order
+        else:
+            if cache_tag[cache_index] != tag:
+                miss_conflict += 1
+                cache_val[cache_index] = 1
+                cache_tag[cache_index] = tag
+                cache_order[cache_index] = access_order
+            
+            elif 0 not in cache_val:
+                miss_capacity += 1
+                cache_order, cache_tag = replacement_policy(subst, 0, nsets, cache_order, access_order, cache_tag, tag)
+        
+    return cache_val, cache_tag, hit, miss, miss_compulsory, miss_conflict, miss_capacity
 
 
 def associative_mapping(start_index, end_index, cache_val, cache_tag, tag, cache_order, access_order, subst, found, hit, miss, miss_compulsory, miss_conflict, miss_capacity):
@@ -82,7 +97,7 @@ def associative_mapping(start_index, end_index, cache_val, cache_tag, tag, cache
         elif 0 in cache_val:
             miss_conflict += 1
             cache_order, cache_tag = replacement_policy(subst, start_index, end_index, cache_order, access_order, cache_tag, tag)
-        else:
+        elif 0 not in cache_val:
             miss_capacity += 1
             cache_order, cache_tag = replacement_policy(subst, start_index, end_index, cache_order, access_order, cache_tag, tag)
 
@@ -102,7 +117,6 @@ def main():
     flagOut = int(sys.argv[5])
     inputFile = sys.argv[6]
 
-    # Inicialização das variáveis para estatísticas
     number_access = 0
     hit = 0
     miss = 0
@@ -133,10 +147,11 @@ def main():
             tag = address >> (n_bits_offset + n_bits_index)
             index = (address >> n_bits_offset) & ((2 ** n_bits_index) - 1)
             found = False
+            
             # Mapeamento direto
             if assoc == 1:
-                cache_val, cache_tag, hit, miss, miss_compulsory = direct_mapping(index, cache_val, cache_tag, tag,
-                                                                                   hit, miss, miss_compulsory)
+                access_order = number_access
+                cache_val, cache_tag, hit, miss, miss_compulsory, miss_conflict, miss_capacity = direct_mapping(index, cache_val, cache_tag, tag, hit, miss, miss_compulsory, found, subst, cache_order, access_order, miss_conflict, nsets, miss_capacity)
             
             # Mapeamento associativo
             else:
@@ -144,15 +159,8 @@ def main():
                 end_index = start_index + assoc
                 access_order = number_access
 
-                hit, miss, miss_compulsory, miss_conflict, miss_capacity = associative_mapping(start_index, end_index,
-                                                                                               cache_val, cache_tag, tag,
-                                                                                               cache_order,
-                                                                                               access_order, subst, found,
-                                                                                               hit, miss,
-                                                                                               miss_compulsory,
-                                                                                               miss_conflict,
-                                                                                               miss_capacity)
-
+                hit, miss, miss_compulsory, miss_conflict, miss_capacity = associative_mapping(start_index, end_index,cache_val, cache_tag, tag, cache_order, access_order, subst, found, hit, miss, miss_compulsory, miss_conflict, miss_capacity)
+            
     print_cache_data(hit, number_access, miss, miss_compulsory, miss_capacity, miss_conflict, flagOut)
 
 
